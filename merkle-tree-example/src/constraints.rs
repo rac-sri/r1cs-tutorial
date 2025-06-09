@@ -88,7 +88,16 @@ fn merkle_tree_constraints_correctness() {
     let tree = crate::SimpleMerkleTree::new(
         &leaf_crh_params,
         &two_to_one_crh_params,
-        &[&[1u8][..], &[2u8][..], &[3u8][..], &[10u8][..], &[9u8][..]], // the i-th entry is the i-th leaf.
+        &[
+            &[1u8][..],
+            &[2u8][..],
+            &[3u8][..],
+            &[10u8][..],
+            &[9u8][..],
+            &[17u8][..],
+            &[70u8][..],
+            &[45u8][..],
+        ], // the i-th entry is the i-th leaf.
     )
     .unwrap();
 
@@ -149,7 +158,16 @@ fn merkle_tree_constraints_soundness() {
     let tree = crate::SimpleMerkleTree::new(
         &leaf_crh_params,
         &two_to_one_crh_params,
-        &[&[1u8][..], &[2u8][..], &[3u8][..], &[10u8][..], &[9u8][..]], // the i-th entry is the i-th leaf.
+        &[
+            &[1u8][..],
+            &[2u8][..],
+            &[3u8][..],
+            &[10u8][..],
+            &[9u8][..],
+            &[17u8][..],
+            &[70u8][..],
+            &[45u8][..],
+        ], // the i-th entry is the i-th leaf.
     )
     .unwrap();
 
@@ -157,7 +175,16 @@ fn merkle_tree_constraints_soundness() {
     let second_tree = crate::SimpleMerkleTree::new(
         &leaf_crh_params,
         &two_to_one_crh_params,
-        &[&[4u8][..], &[2u8][..], &[3u8][..], &[10u8][..], &[9u8][..]], // the i-th entry is the i-th leaf.
+        &[
+            &[4u8][..],
+            &[2u8][..],
+            &[3u8][..],
+            &[10u8][..],
+            &[9u8][..],
+            &[17u8][..],
+            &[70u8][..],
+            &[45u8][..],
+        ], // the i-th entry is the i-th leaf.
     )
     .unwrap();
 
