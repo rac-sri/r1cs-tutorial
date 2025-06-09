@@ -1,14 +1,16 @@
-use ark_crypto_primitives::crh::constraints::{CRHGadget, TwoToOneCRHGadget};
 use ark_crypto_primitives::crh::injective_map::constraints::{
-    PedersenCRHCompressorGadget, TECompressorGadget,
+    PedersenCRHCompressorGadget, PedersenTwoToOneCRHCompressorGadget, TECompressorGadget,
 };
+use ark_crypto_primitives::crh::injective_map::PedersenTwoToOneCRHCompressor;
 use ark_crypto_primitives::crh::{
     injective_map::{PedersenCRHCompressor, TECompressor},
     pedersen,
 };
+use ark_crypto_primitives::crh::{CRHSchemeGadget, TwoToOneCRHSchemeGadget};
 use ark_ed_on_bls12_381::{constraints::EdwardsVar, EdwardsProjective};
 
-pub type TwoToOneHash = PedersenCRHCompressor<EdwardsProjective, TECompressor, TwoToOneWindow>;
+pub type TwoToOneHash =
+    PedersenTwoToOneCRHCompressor<EdwardsProjective, TECompressor, TwoToOneWindow>;
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TwoToOneWindow;
 
@@ -19,7 +21,6 @@ impl pedersen::Window for TwoToOneWindow {
 }
 
 pub type LeafHash = PedersenCRHCompressor<EdwardsProjective, TECompressor, LeafWindow>;
-
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct LeafWindow;
 
@@ -29,7 +30,7 @@ impl pedersen::Window for LeafWindow {
     const NUM_WINDOWS: usize = 144;
 }
 
-pub type TwoToOneHashGadget = PedersenCRHCompressorGadget<
+pub type TwoToOneHashGadget = PedersenTwoToOneCRHCompressorGadget<
     EdwardsProjective,
     TECompressor,
     TwoToOneWindow,
@@ -45,8 +46,9 @@ pub type LeafHashGadget = PedersenCRHCompressorGadget<
     TECompressorGadget,
 >;
 
-pub type LeafHashParamsVar = <LeafHashGadget as CRHGadget<LeafHash, ConstraintF>>::ParametersVar;
+pub type LeafHashParamsVar =
+    <LeafHashGadget as CRHSchemeGadget<LeafHash, ConstraintF>>::ParametersVar;
 pub type TwoToOneHashParamsVar =
-    <TwoToOneHashGadget as TwoToOneCRHGadget<TwoToOneHash, ConstraintF>>::ParametersVar;
+    <TwoToOneHashGadget as TwoToOneCRHSchemeGadget<TwoToOneHash, ConstraintF>>::ParametersVar;
 
 pub type ConstraintF = ark_ed_on_bls12_381::Fq;

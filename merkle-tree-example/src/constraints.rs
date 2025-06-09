@@ -1,6 +1,6 @@
-use crate::common::*;
+use crate::{common::*, MerkleConfig, MerkleConfigVar};
 use crate::{Root, SimplePath};
-use ark_crypto_primitives::crh::{TwoToOneCRH, TwoToOneCRHGadget, CRH};
+use ark_crypto_primitives::crh::{CRHScheme, TwoToOneCRHScheme, TwoToOneCRHSchemeGadget};
 use ark_crypto_primitives::merkle_tree::constraints::PathVar;
 use ark_r1cs_std::prelude::*;
 use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
@@ -9,18 +9,18 @@ use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisE
 // just know that these are types that you can use.)
 
 /// The R1CS equivalent of the the Merkle tree root.
-pub type RootVar = <TwoToOneHashGadget as TwoToOneCRHGadget<TwoToOneHash, ConstraintF>>::OutputVar;
+pub type RootVar =
+    <TwoToOneHashGadget as TwoToOneCRHSchemeGadget<TwoToOneHash, ConstraintF>>::OutputVar;
 
 /// The R1CS equivalent of the the Merkle tree path.
-pub type SimplePathVar =
-    PathVar<crate::MerkleConfig, LeafHashGadget, TwoToOneHashGadget, ConstraintF>;
+pub type SimplePathVar = PathVar<MerkleConfig, ConstraintF, MerkleConfigVar>;
 
 ////////////////////////////////////////////////////////////////////////////////
 
 pub struct MerkleTreeVerification {
     // These are constants that will be embedded into the circuit
-    pub leaf_crh_params: <LeafHash as CRH>::Parameters,
-    pub two_to_one_crh_params: <TwoToOneHash as TwoToOneCRH>::Parameters,
+    pub leaf_crh_params: <LeafHash as CRHScheme>::Parameters,
+    pub two_to_one_crh_params: <TwoToOneHash as TwoToOneCRHScheme>::Parameters,
 
     // These are the public inputs to the circuit.
     pub root: Root,
@@ -75,15 +75,15 @@ fn merkle_tree_constraints_correctness() {
     let mut rng = ark_std::test_rng();
 
     // First, let's sample the public parameters for the hash functions:
-    let leaf_crh_params = <LeafHash as CRH>::setup(&mut rng).unwrap();
-    let two_to_one_crh_params = <TwoToOneHash as TwoToOneCRH>::setup(&mut rng).unwrap();
+    let leaf_crh_params = <LeafHash as CRHScheme>::setup(&mut rng).unwrap();
+    let two_to_one_crh_params = <TwoToOneHash as TwoToOneCRHScheme>::setup(&mut rng).unwrap();
 
     // Next, let's construct our tree.
     // This follows the API in https://github.com/arkworks-rs/crypto-primitives/blob/6be606259eab0aec010015e2cfd45e4f134cd9bf/src/merkle_tree/mod.rs#L156
     let tree = crate::SimpleMerkleTree::new(
         &leaf_crh_params,
         &two_to_one_crh_params,
-        &[1u8, 2u8, 3u8, 10u8, 9u8, 17u8, 70u8, 45u8], // the i-th entry is the i-th leaf.
+        &[&[1u8][..], &[2u8][..], &[3u8][..], &[10u8][..], &[9u8][..]], // the i-th entry is the i-th leaf.
     )
     .unwrap();
 
@@ -136,15 +136,15 @@ fn merkle_tree_constraints_soundness() {
     let mut rng = ark_std::test_rng();
 
     // First, let's sample the public parameters for the hash functions:
-    let leaf_crh_params = <LeafHash as CRH>::setup(&mut rng).unwrap();
-    let two_to_one_crh_params = <TwoToOneHash as TwoToOneCRH>::setup(&mut rng).unwrap();
+    let leaf_crh_params = <LeafHash as CRHScheme>::setup(&mut rng).unwrap();
+    let two_to_one_crh_params = <TwoToOneHash as TwoToOneCRHScheme>::setup(&mut rng).unwrap();
 
     // Next, let's construct our tree.
     // This follows the API in https://github.com/arkworks-rs/crypto-primitives/blob/6be606259eab0aec010015e2cfd45e4f134cd9bf/src/merkle_tree/mod.rs#L156
     let tree = crate::SimpleMerkleTree::new(
         &leaf_crh_params,
         &two_to_one_crh_params,
-        &[1u8, 2u8, 3u8, 10u8, 9u8, 17u8, 70u8, 45u8], // the i-th entry is the i-th leaf.
+        &[&[1u8][..], &[2u8][..], &[3u8][..], &[10u8][..], &[9u8][..]], // the i-th entry is the i-th leaf.
     )
     .unwrap();
 
@@ -152,7 +152,7 @@ fn merkle_tree_constraints_soundness() {
     let second_tree = crate::SimpleMerkleTree::new(
         &leaf_crh_params,
         &two_to_one_crh_params,
-        &[4u8, 2u8, 3u8, 10u8, 9u8, 17u8, 70u8, 45u8], // the i-th entry is the i-th leaf.
+        &[&[4u8][..], &[2u8][..], &[3u8][..], &[10u8][..], &[9u8][..]], // the i-th entry is the i-th leaf.
     )
     .unwrap();
 
