@@ -1,8 +1,9 @@
-use ark_ec::ProjectiveCurve;
-use ark_ff::{to_bytes, Field};
-use ark_r1cs_std::{bits::uint8::UInt8, prelude::*};
+use ark_ec::CurveGroup;
+use ark_ff::Field;
+use ark_r1cs_std::prelude::*;
 use ark_relations::r1cs::ConstraintSystemRef;
 use ark_relations::r1cs::{Namespace, SynthesisError};
+use ark_serialize::CanonicalSerialize;
 use ark_std::vec::Vec;
 
 use crate::random_oracle::blake2s::constraints::{ParametersVar as B2SParamsVar, ROGadget};
@@ -15,10 +16,10 @@ use core::{borrow::Borrow, marker::PhantomData};
 
 use crate::signature::schnorr::{Parameters, PublicKey, Schnorr, Signature};
 
-type ConstraintF<C> = <<C as ProjectiveCurve>::BaseField as Field>::BasePrimeField;
+type ConstraintF<C> = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
 
 #[derive(Clone)]
-pub struct ParametersVar<C: ProjectiveCurve, GC: CurveVar<C, ConstraintF<C>>>
+pub struct ParametersVar<C: CurveGroup, GC: CurveVar<C, ConstraintF<C>>>
 where
     for<'a> &'a GC: GroupOpsBounds<'a, C, GC>,
 {
@@ -29,10 +30,10 @@ where
 
 #[derive(Derivative)]
 #[derivative(
-    Debug(bound = "C: ProjectiveCurve, GC: CurveVar<C, ConstraintF<C>>"),
-    Clone(bound = "C: ProjectiveCurve, GC: CurveVar<C, ConstraintF<C>>")
+    Debug(bound = "C: CurveGroup, GC: CurveVar<C, ConstraintF<C>>"),
+    Clone(bound = "C: CurveGroup, GC: CurveVar<C, ConstraintF<C>>")
 )]
-pub struct PublicKeyVar<C: ProjectiveCurve, GC: CurveVar<C, ConstraintF<C>>>
+pub struct PublicKeyVar<C: CurveGroup, GC: CurveVar<C, ConstraintF<C>>>
 where
     for<'a> &'a GC: GroupOpsBounds<'a, C, GC>,
 {
@@ -43,10 +44,10 @@ where
 
 #[derive(Derivative)]
 #[derivative(
-    Debug(bound = "C: ProjectiveCurve, GC: CurveVar<C, ConstraintF<C>>"),
-    Clone(bound = "C: ProjectiveCurve, GC: CurveVar<C, ConstraintF<C>>")
+    Debug(bound = "C: CurveGroup, GC: CurveVar<C, ConstraintF<C>>"),
+    Clone(bound = "C: CurveGroup, GC: CurveVar<C, ConstraintF<C>>")
 )]
-pub struct SignatureVar<C: ProjectiveCurve, GC: CurveVar<C, ConstraintF<C>>>
+pub struct SignatureVar<C: CurveGroup, GC: CurveVar<C, ConstraintF<C>>>
 where
     for<'a> &'a GC: GroupOpsBounds<'a, C, GC>,
 {
@@ -56,7 +57,7 @@ where
     _group: PhantomData<GC>,
 }
 
-pub struct SchnorrSignatureVerifyGadget<C: ProjectiveCurve, GC: CurveVar<C, ConstraintF<C>>>
+pub struct SchnorrSignatureVerifyGadget<C: CurveGroup, GC: CurveVar<C, ConstraintF<C>>>
 where
     for<'a> &'a GC: GroupOpsBounds<'a, C, GC>,
 {
@@ -68,7 +69,7 @@ where
 
 impl<C, GC> SigVerifyGadget<Schnorr<C>, ConstraintF<C>> for SchnorrSignatureVerifyGadget<C, GC>
 where
-    C: ProjectiveCurve,
+    C: CurveGroup,
     GC: CurveVar<C, ConstraintF<C>>,
     for<'a> &'a GC: GroupOpsBounds<'a, C, GC>,
 {
@@ -96,8 +97,8 @@ where
         if parameters.salt.is_some() {
             hash_input.extend_from_slice(parameters.salt.as_ref().unwrap());
         }
-        hash_input.extend_from_slice(&public_key.pub_key.to_bytes()?);
-        hash_input.extend_from_slice(&claimed_prover_commitment.to_bytes()?);
+        hash_input.extend_from_slice(public_key.pub_key.to_bytes_le().unwrap().as_slice());
+        hash_input.extend_from_slice(claimed_prover_commitment.to_bytes_le().unwrap().as_slice());
         hash_input.extend_from_slice(message);
 
         let b2s_params = <B2SParamsVar as AllocVar<_, ConstraintF<C>>>::new_constant(
@@ -112,7 +113,7 @@ where
 
 impl<C, GC> AllocVar<Parameters<C>, ConstraintF<C>> for ParametersVar<C, GC>
 where
-    C: ProjectiveCurve,
+    C: CurveGroup,
     GC: CurveVar<C, ConstraintF<C>>,
     for<'a> &'a GC: GroupOpsBounds<'a, C, GC>,
 {
@@ -152,7 +153,7 @@ where
 
 impl<C, GC> AllocVar<PublicKey<C>, ConstraintF<C>> for PublicKeyVar<C, GC>
 where
-    C: ProjectiveCurve,
+    C: CurveGroup,
     GC: CurveVar<C, ConstraintF<C>>,
     for<'a> &'a GC: GroupOpsBounds<'a, C, GC>,
 {
@@ -171,7 +172,8 @@ where
 
 impl<C, GC> AllocVar<Signature<C>, ConstraintF<C>> for SignatureVar<C, GC>
 where
-    C: ProjectiveCurve,
+    C: CurveGroup,
+    C::ScalarField: CanonicalSerialize,
     GC: CurveVar<C, ConstraintF<C>>,
     for<'a> &'a GC: GroupOpsBounds<'a, C, GC>,
 {
@@ -182,7 +184,11 @@ where
     ) -> Result<Self, SynthesisError> {
         f().and_then(|val| {
             let cs = cs.into();
-            let response_bytes = to_bytes![val.borrow().prover_response].unwrap();
+            let mut response_bytes = Vec::new();
+            val.borrow()
+                .prover_response
+                .serialize_compressed(&mut response_bytes)
+                .unwrap();
             let challenge_bytes = val.borrow().verifier_challenge;
             let mut prover_response = Vec::<UInt8<ConstraintF<C>>>::new();
             let mut verifier_challenge = Vec::<UInt8<ConstraintF<C>>>::new();
@@ -211,7 +217,7 @@ where
 
 impl<C, GC> EqGadget<ConstraintF<C>> for PublicKeyVar<C, GC>
 where
-    C: ProjectiveCurve,
+    C: CurveGroup,
     GC: CurveVar<C, ConstraintF<C>>,
     for<'a> &'a GC: GroupOpsBounds<'a, C, GC>,
 {
@@ -243,11 +249,11 @@ where
 
 impl<C, GC> ToBytesGadget<ConstraintF<C>> for PublicKeyVar<C, GC>
 where
-    C: ProjectiveCurve,
+    C: CurveGroup,
     GC: CurveVar<C, ConstraintF<C>>,
     for<'a> &'a GC: GroupOpsBounds<'a, C, GC>,
 {
-    fn to_bytes(&self) -> Result<Vec<UInt8<ConstraintF<C>>>, SynthesisError> {
-        self.pub_key.to_bytes()
+    fn to_bytes_le(&self) -> Result<Vec<UInt8<ConstraintF<C>>>, SynthesisError> {
+        self.pub_key.to_bytes_le()
     }
 }

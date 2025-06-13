@@ -38,7 +38,8 @@ pub trait SigRandomizePkGadget<S: SignatureScheme, ConstraintF: Field> {
 #[cfg(test)]
 mod test {
     use crate::signature::{schnorr, schnorr::constraints::*, *};
-    use ark_ec::ProjectiveCurve;
+
+    use ark_ec::CurveGroup;
     use ark_ed_on_bls12_381::constraints::EdwardsVar as JubJubVar;
     use ark_ed_on_bls12_381::EdwardsProjective as JubJub;
     use ark_ff::PrimeField;
@@ -80,7 +81,7 @@ mod test {
 
     #[test]
     fn schnorr_signature_test() {
-        type F = <JubJub as ProjectiveCurve>::BaseField;
+        type F = <JubJub as CurveGroup>::BaseField;
         let message = "Hi, I am a Schnorr signature!";
         sign_and_verify::<
             F,

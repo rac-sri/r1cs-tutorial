@@ -1,12 +1,20 @@
 use crate::account::{AccountId, AccountInformation, AccountPublicKey, AccountSecretKey};
 use crate::signature::{schnorr, SignatureScheme};
 use crate::transaction::Transaction;
+use ark_crypto_primitives::crh::injective_map::constraints::{
+    PedersenCRHCompressorGadget, PedersenTwoToOneCRHCompressorGadget, TECompressorGadget,
+};
+use ark_crypto_primitives::crh::injective_map::PedersenTwoToOneCRHCompressor;
 use ark_crypto_primitives::crh::{
     injective_map::{PedersenCRHCompressor, TECompressor},
-    pedersen, TwoToOneCRH, CRH,
+    pedersen, CRHScheme, TwoToOneCRHScheme,
 };
-use ark_crypto_primitives::merkle_tree::{self, MerkleTree, Path};
+use ark_crypto_primitives::crh::{CRHSchemeGadget, TwoToOneCRHSchemeGadget};
+use ark_crypto_primitives::merkle_tree::constraints::{BytesVarDigestConverter, ConfigGadget};
+use ark_crypto_primitives::merkle_tree::{self, ByteDigestConverter, MerkleTree, Path};
+use ark_ed_on_bls12_381::constraints::EdwardsVar;
 use ark_ed_on_bls12_381::EdwardsProjective;
+use ark_r1cs_std::uint8::UInt8;
 use ark_std::rand::Rng;
 use std::collections::HashMap;
 
@@ -32,15 +40,15 @@ impl Amount {
 #[derive(Clone)]
 pub struct Parameters {
     pub sig_params: schnorr::Parameters<EdwardsProjective>,
-    pub leaf_crh_params: <TwoToOneHash as CRH>::Parameters,
-    pub two_to_one_crh_params: <TwoToOneHash as TwoToOneCRH>::Parameters,
+    pub leaf_crh_params: <LeafHash as CRHScheme>::Parameters,
+    pub two_to_one_crh_params: <TwoToOneHash as TwoToOneCRHScheme>::Parameters,
 }
 
 impl Parameters {
     pub fn sample<R: Rng>(rng: &mut R) -> Self {
         let sig_params = schnorr::Schnorr::setup(rng).unwrap();
-        let leaf_crh_params = <LeafHash as CRH>::setup(rng).unwrap();
-        let two_to_one_crh_params = <TwoToOneHash as TwoToOneCRH>::setup(rng).unwrap();
+        let leaf_crh_params = <LeafHash as CRHScheme>::setup(rng).unwrap();
+        let two_to_one_crh_params = <TwoToOneHash as TwoToOneCRHScheme>::setup(rng).unwrap();
         Self {
             sig_params,
             leaf_crh_params,
@@ -49,7 +57,16 @@ impl Parameters {
     }
 }
 
-pub type TwoToOneHash = PedersenCRHCompressor<EdwardsProjective, TECompressor, TwoToOneWindow>;
+pub type TwoToOneHash =
+    PedersenTwoToOneCRHCompressor<EdwardsProjective, TECompressor, TwoToOneWindow>;
+
+pub type TwoToOneHashGadget = PedersenTwoToOneCRHCompressorGadget<
+    EdwardsProjective,
+    TECompressor,
+    TwoToOneWindow,
+    EdwardsVar,
+    TECompressorGadget,
+>;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TwoToOneWindow;
@@ -61,6 +78,13 @@ impl pedersen::Window for TwoToOneWindow {
 }
 
 pub type LeafHash = PedersenCRHCompressor<EdwardsProjective, TECompressor, LeafWindow>;
+pub type LeafHashGadget = PedersenCRHCompressorGadget<
+    EdwardsProjective,
+    TECompressor,
+    LeafWindow,
+    EdwardsVar,
+    TECompressorGadget,
+>;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct LeafWindow;
@@ -71,17 +95,34 @@ impl pedersen::Window for LeafWindow {
     const NUM_WINDOWS: usize = 4;
 }
 
+pub type ConstraintF = ark_ed_on_bls12_381::Fq;
+type LeafVar<ConstraintF> = [UInt8<ConstraintF>];
 #[derive(Clone)]
 pub struct MerkleConfig;
 impl merkle_tree::Config for MerkleConfig {
+    type Leaf = [u8];
     type LeafHash = LeafHash;
     type TwoToOneHash = TwoToOneHash;
+    type LeafDigest = <LeafHash as CRHScheme>::Output;
+    type LeafInnerDigestConverter = ByteDigestConverter<Self::LeafDigest>;
+    type InnerDigest = <TwoToOneHash as TwoToOneCRHScheme>::Output;
+}
+
+pub struct MerkleConfigVar;
+impl ConfigGadget<MerkleConfig, ConstraintF> for MerkleConfigVar {
+    type Leaf = LeafVar<ConstraintF>;
+    type LeafDigest = <LeafHashGadget as CRHSchemeGadget<LeafHash, ConstraintF>>::OutputVar;
+    type LeafInnerConverter = BytesVarDigestConverter<Self::LeafDigest, ConstraintF>;
+    type InnerDigest =
+        <TwoToOneHashGadget as TwoToOneCRHSchemeGadget<TwoToOneHash, ConstraintF>>::OutputVar;
+    type LeafHash = LeafHashGadget;
+    type TwoToOneHash = TwoToOneHashGadget;
 }
 
 /// A Merkle tree containing account information.
 pub type AccMerkleTree = MerkleTree<MerkleConfig>;
 /// The root of the account Merkle tree.
-pub type AccRoot = <TwoToOneHash as TwoToOneCRH>::Output;
+pub type AccRoot = <TwoToOneHash as TwoToOneCRHScheme>::Output;
 /// A membership proof for a given account.
 pub type AccPath = Path<MerkleConfig>;
 

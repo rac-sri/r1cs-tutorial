@@ -265,6 +265,7 @@ mod test {
     use ark_simple_payments::account::AccountId;
     use ark_simple_payments::ledger::{Amount, Parameters, State};
     use ark_simple_payments::transaction::Transaction;
+    use ark_std::rand::SeedableRng;
     use tracing_subscriber::layer::SubscriberExt;
 
     fn test_cs<const NUM_TX: usize>(rollup: Rollup<NUM_TX>) -> bool {
@@ -456,7 +457,7 @@ mod test {
         // Use a circuit just to generate the circuit
         let circuit_defining_cs = build_two_tx_circuit();
 
-        let mut rng = ark_std::test_rng();
+        let mut rng = ark_std::rand::rngs::StdRng::from_seed([1; 32]);
         let (pk, vk) =
             Groth16::<Bls12_381>::circuit_specific_setup(circuit_defining_cs, &mut rng).unwrap();
 
@@ -468,8 +469,8 @@ mod test {
             circuit_to_verify_against.final_root.unwrap(),
         ];
 
-        let proof = Groth16::prove(&pk, circuit_to_verify_against, &mut rng).unwrap();
-        let valid_proof = Groth16::verify(&vk, &public_input, &proof).unwrap();
+        let proof = Groth16::<Bls12_381>::prove(&pk, circuit_to_verify_against, &mut rng).unwrap();
+        let valid_proof = Groth16::<Bls12_381>::verify(&vk, &public_input, &proof).unwrap();
         assert!(valid_proof);
 
         // Use the same circuit but with different inputs to verify against
@@ -481,8 +482,8 @@ mod test {
             circuit_to_verify_against.final_root.unwrap(),
         ];
 
-        let proof = Groth16::prove(&pk, circuit_to_verify_against, &mut rng).unwrap();
-        let valid_proof = Groth16::verify(&vk, &public_input, &proof).unwrap();
+        let proof = Groth16::<Bls12_381>::prove(&pk, circuit_to_verify_against, &mut rng).unwrap();
+        let valid_proof = Groth16::<Bls12_381>::verify(&vk, &public_input, &proof).unwrap();
         assert!(!valid_proof);
     }
 }

@@ -1,14 +1,12 @@
 use crate::ConstraintF;
 use ark_crypto_primitives::crh::injective_map::constraints::{
-    PedersenCRHCompressorGadget, TECompressorGadget,
+    PedersenCRHCompressorGadget, PedersenTwoToOneCRHCompressorGadget, TECompressorGadget,
 };
-use ark_crypto_primitives::crh::{
-    constraints::{CRHGadget, TwoToOneCRHGadget},
-    injective_map::TECompressor,
-};
+
+use ark_crypto_primitives::crh::{injective_map::TECompressor, CRHScheme, TwoToOneCRHScheme};
+use ark_crypto_primitives::crh::{CRHSchemeGadget, TwoToOneCRHSchemeGadget};
 use ark_crypto_primitives::merkle_tree::constraints::PathVar;
 use ark_ed_on_bls12_381::{constraints::EdwardsVar, EdwardsProjective};
-use ark_r1cs_std::bits::uint64::UInt64;
 use ark_r1cs_std::prelude::*;
 use ark_relations::r1cs::{Namespace, SynthesisError};
 use ark_simple_payments::ledger::*;
@@ -22,7 +20,7 @@ pub struct AmountVar(pub UInt64<ConstraintF>);
 impl AmountVar {
     #[tracing::instrument(target = "r1cs", skip(self))]
     pub fn to_bytes_le(&self) -> Vec<UInt8<ConstraintF>> {
-        self.0.to_bytes().unwrap()
+        self.0.to_bytes_le().unwrap()
     }
 
     #[tracing::instrument(target = "r1cs", skip(self, other))]
@@ -33,17 +31,17 @@ impl AmountVar {
         // converting the field elements to bits
         // and then checking if the 65th bit is 0.
         // TODO: Demonstrate via circuit profiling if this needs optimization.
-        let self_bits = self.0.to_bits_le();
-        let self_fe = Boolean::le_bits_to_fp_var(&self_bits)?;
-        let other_bits = other.0.to_bits_le();
-        let other_fe = Boolean::le_bits_to_fp_var(&other_bits)?;
+        let self_bits = self.0.to_bits_le().unwrap();
+        let self_fe = Boolean::le_bits_to_fp(&self_bits)?;
+        let other_bits = other.0.to_bits_le().unwrap();
+        let other_fe = Boolean::le_bits_to_fp(&other_bits)?;
         let res_fe = self_fe + other_fe;
-        let res_bz = res_fe.to_bytes()?;
+        let res_bz = res_fe.to_bytes_le()?;
         // Ensure 65th bit is 0
         // implies 8th word (0-indexed) is 0
         res_bz[8].enforce_equal(&UInt8::<ConstraintF>::constant(0))?;
         // Add sum
-        let result = UInt64::addmany(&[self.0.clone(), other.0.clone()])?;
+        let result = UInt64::wrapping_add_many(&[self.0.clone(), other.0.clone()])?;
         Ok(AmountVar(result))
     }
 
@@ -54,12 +52,12 @@ impl AmountVar {
         // We then cast the field element to bits, and ensure the top bits are 0.
         // We then convert these bits to a field element
         // TODO: Demonstrate via circuit profiling if this needs optimization.
-        let self_bits = self.0.to_bits_le();
-        let self_fe = Boolean::le_bits_to_fp_var(&self_bits)?;
-        let other_bits = other.0.to_bits_le();
-        let other_fe = Boolean::le_bits_to_fp_var(&other_bits)?;
+        let self_bits = self.0.to_bits_le().unwrap();
+        let self_fe = Boolean::le_bits_to_fp(&self_bits)?;
+        let other_bits = other.0.to_bits_le().unwrap();
+        let other_fe = Boolean::le_bits_to_fp(&other_bits)?;
         let res_fe = self_fe - other_fe;
-        let res_bz = res_fe.to_bytes()?;
+        let res_bz = res_fe.to_bytes_le()?;
         // Ensure top bit is 0
         res_bz[res_bz.len() - 1].enforce_equal(&UInt8::<ConstraintF>::constant(0))?;
         // Convert to UInt64
@@ -79,7 +77,7 @@ impl AllocVar<Amount, ConstraintF> for AmountVar {
     }
 }
 
-pub type TwoToOneHashGadget = PedersenCRHCompressorGadget<
+pub type TwoToOneHashGadget = PedersenTwoToOneCRHCompressorGadget<
     EdwardsProjective,
     TECompressor,
     TwoToOneWindow,
@@ -96,11 +94,13 @@ pub type LeafHashGadget = PedersenCRHCompressorGadget<
 >;
 
 pub type AccRootVar =
-    <TwoToOneHashGadget as TwoToOneCRHGadget<TwoToOneHash, ConstraintF>>::OutputVar;
-pub type AccPathVar = PathVar<MerkleConfig, LeafHashGadget, TwoToOneHashGadget, ConstraintF>;
-pub type LeafHashParamsVar = <LeafHashGadget as CRHGadget<LeafHash, ConstraintF>>::ParametersVar;
+    <TwoToOneHashGadget as TwoToOneCRHSchemeGadget<TwoToOneHash, ConstraintF>>::OutputVar;
+
+pub type AccPathVar = PathVar<MerkleConfig, ConstraintF, MerkleConfigVar>;
+pub type LeafHashParamsVar =
+    <LeafHashGadget as CRHSchemeGadget<LeafHash, ConstraintF>>::ParametersVar;
 pub type TwoToOneHashParamsVar =
-    <TwoToOneHashGadget as TwoToOneCRHGadget<TwoToOneHash, ConstraintF>>::ParametersVar;
+    <TwoToOneHashGadget as TwoToOneCRHSchemeGadget<TwoToOneHash, ConstraintF>>::ParametersVar;
 
 /// The parameters that are used in transaction creation and validation.
 pub struct ParametersVar {
