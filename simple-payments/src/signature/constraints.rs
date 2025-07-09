@@ -68,6 +68,7 @@ mod test {
         let valid_sig_var = SG::verify(&parameters_var, &pk_var, &msg_var, &signature_var).unwrap();
 
         valid_sig_var.enforce_equal(&Boolean::<F>::TRUE).unwrap();
+
         assert!(cs.is_satisfied().unwrap());
     }
 

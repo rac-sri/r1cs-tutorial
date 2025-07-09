@@ -85,9 +85,11 @@ where
     ) -> Result<Boolean<ConstraintF<C>>, SynthesisError> {
         let prover_response = signature.prover_response.clone();
         let verifier_challenge = signature.verifier_challenge.clone();
+
         let mut claimed_prover_commitment = parameters
             .generator
             .scalar_mul_le(prover_response.to_bits_le()?.iter())?;
+
         let public_key_times_verifier_challenge = public_key
             .pub_key
             .scalar_mul_le(verifier_challenge.to_bits_le()?.iter())?;
