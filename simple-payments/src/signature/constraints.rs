@@ -1,8 +1,8 @@
+use crate::signature::SignatureScheme;
 use ark_ff::Field;
 use ark_r1cs_std::prelude::*;
 use ark_relations::r1cs::SynthesisError;
-
-use crate::signature::SignatureScheme;
+use tracing_subscriber::layer::SubscriberExt;
 
 pub trait SigVerifyGadget<S: SignatureScheme, ConstraintF: Field> {
     type ParametersVar: AllocVar<S::Parameters, ConstraintF> + Clone;
@@ -44,8 +44,9 @@ mod test {
     use ark_ed_on_bls12_381::EdwardsProjective as JubJub;
     use ark_ff::PrimeField;
     use ark_r1cs_std::prelude::*;
-    use ark_relations::r1cs::ConstraintSystem;
+    use ark_relations::r1cs::{ConstraintLayer, ConstraintSystem, TracingMode};
     use ark_std::test_rng;
+    use tracing_subscriber::layer::SubscriberExt;
 
     fn sign_and_verify<F: PrimeField, S: SignatureScheme, SG: SigVerifyGadget<S, F>>(
         message: &[u8],
@@ -55,6 +56,11 @@ mod test {
         let (pk, sk) = S::keygen(&parameters, rng).unwrap();
         let sig = S::sign(&parameters, &sk, &message, rng).unwrap();
         assert!(S::verify(&parameters, &pk, &message, &sig).unwrap());
+
+        // let mut layer = ConstraintLayer::default();
+        // layer.mode = TracingMode::All;
+        // let subscriber = tracing_subscriber::Registry::default().with(layer);
+        // let _guard = tracing::subscriber::set_default(subscriber);
 
         let cs = ConstraintSystem::<F>::new_ref();
 
@@ -81,7 +87,7 @@ mod test {
     }
 
     #[test]
-    fn schnorr_signature_test() {
+    fn schnorr_signature_test_constraints() {
         type F = <JubJub as CurveGroup>::BaseField;
         let message = "Hi, I am a Schnorr signature!";
         sign_and_verify::<
@@ -89,6 +95,7 @@ mod test {
             schnorr::Schnorr<JubJub>,
             SchnorrSignatureVerifyGadget<JubJub, JubJubVar>,
         >(message.as_bytes());
+
         failed_verification::<schnorr::Schnorr<JubJub>>(
             message.as_bytes(),
             "Bad message".as_bytes(),

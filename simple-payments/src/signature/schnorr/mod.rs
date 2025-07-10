@@ -3,7 +3,7 @@ use ark_crypto_primitives::Error;
 use ark_ec::{AffineRepr, CurveGroup};
 use ark_ff::{
     fields::{Field, PrimeField},
-    ToConstraintField, UniformRand,
+    BigInteger, ToConstraintField, UniformRand,
 };
 use ark_serialize::CanonicalSerialize;
 use ark_std::rand::Rng;
@@ -107,12 +107,14 @@ where
             if parameters.salt != None {
                 hash_input.extend_from_slice(&parameters.salt.unwrap());
             }
+
             let mut pk_bytes = Vec::new();
-            sk.public_key.serialize_compressed(&mut pk_bytes).unwrap();
+            sk.public_key.serialize_uncompressed(&mut pk_bytes).unwrap();
+
             hash_input.extend_from_slice(&pk_bytes);
             let mut prover_commitment_bytes = Vec::new();
             prover_commitment
-                .serialize_compressed(&mut prover_commitment_bytes)
+                .serialize_uncompressed(&mut prover_commitment_bytes)
                 .unwrap();
             hash_input.extend_from_slice(&prover_commitment_bytes);
             hash_input.extend_from_slice(message);
@@ -168,11 +170,11 @@ where
             hash_input.extend_from_slice(&parameters.salt.unwrap());
         }
         let mut pk_bytes = Vec::new();
-        pk.serialize_compressed(&mut pk_bytes).unwrap();
+        pk.serialize_uncompressed(&mut pk_bytes).unwrap();
         hash_input.extend_from_slice(&pk_bytes);
         let mut prover_commitment_bytes = Vec::new();
         claimed_prover_commitment
-            .serialize_compressed(&mut prover_commitment_bytes)
+            .serialize_uncompressed(&mut prover_commitment_bytes)
             .unwrap();
         hash_input.extend_from_slice(&prover_commitment_bytes);
         hash_input.extend_from_slice(message);

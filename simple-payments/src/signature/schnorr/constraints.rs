@@ -99,14 +99,14 @@ where
         if parameters.salt.is_some() {
             hash_input.extend_from_slice(parameters.salt.as_ref().unwrap());
         }
-        hash_input.extend_from_slice(public_key.pub_key.to_bytes_le().unwrap().as_slice());
+
+        let pub_key_bytes = public_key.pub_key.to_bytes_le().unwrap();
+
+        hash_input.extend_from_slice(pub_key_bytes.as_slice());
         hash_input.extend_from_slice(claimed_prover_commitment.to_bytes_le().unwrap().as_slice());
         hash_input.extend_from_slice(message);
 
-        let b2s_params = <B2SParamsVar as AllocVar<_, ConstraintF<C>>>::new_constant(
-            ConstraintSystemRef::None,
-            (),
-        )?;
+        let b2s_params = B2SParamsVar;
         let obtained_verifier_challenge = ROGadget::evaluate(&b2s_params, &hash_input)?.0;
 
         obtained_verifier_challenge.is_eq(&verifier_challenge.to_vec())

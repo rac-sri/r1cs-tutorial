@@ -371,6 +371,7 @@ mod test {
         let rollup =
             UnaryRollup::with_state_and_transaction(pp.clone(), bad_tx, &mut temp_state, false)
                 .unwrap();
+
         assert!(!test_cs(rollup));
     }
 }
