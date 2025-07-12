@@ -1,9 +1,5 @@
 use crate::ConstraintF;
-use ark_crypto_primitives::crh::injective_map::constraints::{
-    PedersenCRHCompressorGadget, PedersenTwoToOneCRHCompressorGadget, TECompressorGadget,
-};
 
-use ark_crypto_primitives::crh::{injective_map::TECompressor, CRHScheme, TwoToOneCRHScheme};
 use ark_crypto_primitives::crh::{CRHSchemeGadget, TwoToOneCRHSchemeGadget};
 use ark_crypto_primitives::merkle_tree::constraints::PathVar;
 use ark_ed_on_bls12_381::{constraints::EdwardsVar, EdwardsProjective};
@@ -76,22 +72,6 @@ impl AllocVar<Amount, ConstraintF> for AmountVar {
         UInt64::new_variable(cs.into(), || f().map(|u| u.borrow().0), mode).map(Self)
     }
 }
-
-pub type TwoToOneHashGadget = PedersenTwoToOneCRHCompressorGadget<
-    EdwardsProjective,
-    TECompressor,
-    TwoToOneWindow,
-    EdwardsVar,
-    TECompressorGadget,
->;
-
-pub type LeafHashGadget = PedersenCRHCompressorGadget<
-    EdwardsProjective,
-    TECompressor,
-    LeafWindow,
-    EdwardsVar,
-    TECompressorGadget,
->;
 
 pub type AccRootVar =
     <TwoToOneHashGadget as TwoToOneCRHSchemeGadget<TwoToOneHash, ConstraintF>>::OutputVar;

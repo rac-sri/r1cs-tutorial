@@ -26,7 +26,7 @@ impl<F: PrimeField> RandomOracleGadget<blake2s::RO, F> for ROGadget {
             input_bits.extend_from_slice(&byte.to_bits_le()?);
         }
         let mut result = Vec::new();
-        for int in evaluate_blake2s(&input_bits)?.into_iter() {
+        for int in evaluate_blake2s(&input_bits)?.iter() {
             let chunk = int.to_bytes_le().unwrap();
             result.extend_from_slice(&chunk);
         }

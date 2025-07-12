@@ -47,7 +47,9 @@ impl AccountInformationVar {
     /// Convert the account information to bytes.
     #[tracing::instrument(target = "r1cs", skip(self))]
     pub fn to_bytes_le(&self) -> Vec<UInt8<crate::ConstraintF>> {
-        self.public_key.to_bytes_le().unwrap()
+        let mut result = self.public_key.to_bytes_le().unwrap();
+        result.extend_from_slice(&self.balance.to_bytes_le());
+        result
     }
 }
 

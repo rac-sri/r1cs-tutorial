@@ -40,7 +40,7 @@ impl AccountInformation {
     pub fn to_bytes_le(&self) -> Vec<u8> {
         let mut public_key_bytes = Vec::new();
         self.public_key
-            .serialize_compressed(&mut public_key_bytes)
+            .serialize_uncompressed(&mut public_key_bytes)
             .unwrap();
 
         public_key_bytes.extend_from_slice(&self.balance.to_bytes_le());

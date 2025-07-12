@@ -130,11 +130,13 @@ impl TransactionVar {
         )?;
 
         // TODO: Uncomment the following
-        sender_exists
-            .nand(&sender_updated_correctly)?
-            .nand(&recipient_exists)?
-            .nand(&recipient_updated_correctly)?
-            .nand(&sig_verifies)
+        let val = sender_exists
+            & sender_updated_correctly
+            & recipient_exists
+            & recipient_updated_correctly
+            & sig_verifies;
+
+        Ok(val)
     }
 }
 
@@ -259,6 +261,7 @@ impl ConstraintSynthesizer<ConstraintF> for UnaryRollup {
         let initial_root = AccRootVar::new_input(ark_relations::ns!(cs, "Initial root"), || {
             Ok(self.initial_root)
         })?;
+
         // Declare the final root as a public input.
         let final_root =
             AccRootVar::new_input(ark_relations::ns!(cs, "Final root"), || Ok(self.final_root))?;
@@ -322,6 +325,7 @@ mod test {
     use ark_relations::r1cs::{
         ConstraintLayer, ConstraintSynthesizer, ConstraintSystem, TracingMode::OnlyConstraints,
     };
+
     use ark_simple_payments::ledger::{Amount, Parameters, State};
     use ark_simple_payments::transaction::Transaction;
     use tracing_subscriber::layer::SubscriberExt;
@@ -333,11 +337,7 @@ mod test {
         let _guard = tracing::subscriber::set_default(subscriber);
         let cs = ConstraintSystem::new_ref();
         rollup.generate_constraints(cs.clone()).unwrap();
-        let result = cs.is_satisfied().unwrap();
-        if !result {
-            println!("{:?}", cs.which_is_unsatisfied());
-        }
-        result
+        cs.is_satisfied().unwrap()
     }
 
     #[test]
@@ -345,6 +345,7 @@ mod test {
         let mut rng = ark_std::test_rng();
         let pp = Parameters::sample(&mut rng);
         let mut state = State::new(32, &pp);
+
         // Let's make an account for Alice.
         let (alice_id, _alice_pk, alice_sk) =
             state.sample_keys_and_register(&pp, &mut rng).unwrap();
@@ -362,6 +363,7 @@ mod test {
         let rollup =
             UnaryRollup::with_state_and_transaction(pp.clone(), tx1, &mut temp_state, true)
                 .unwrap();
+
         assert!(test_cs(rollup));
 
         let mut temp_state = state.clone();

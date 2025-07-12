@@ -3,7 +3,7 @@ use ark_crypto_primitives::Error;
 use ark_ec::{AffineRepr, CurveGroup};
 use ark_ff::{
     fields::{Field, PrimeField},
-    BigInteger, ToConstraintField, UniformRand,
+    ToConstraintField, UniformRand,
 };
 use ark_serialize::CanonicalSerialize;
 use ark_std::rand::Rng;

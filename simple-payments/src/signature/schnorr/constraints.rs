@@ -1,7 +1,6 @@
 use ark_ec::CurveGroup;
 use ark_ff::Field;
 use ark_r1cs_std::prelude::*;
-use ark_relations::r1cs::ConstraintSystemRef;
 use ark_relations::r1cs::{Namespace, SynthesisError};
 use ark_serialize::CanonicalSerialize;
 use ark_std::vec::Vec;
@@ -189,7 +188,7 @@ where
             let mut response_bytes = Vec::new();
             val.borrow()
                 .prover_response
-                .serialize_compressed(&mut response_bytes)
+                .serialize_uncompressed(&mut response_bytes)
                 .unwrap();
             let challenge_bytes = val.borrow().verifier_challenge;
             let mut prover_response = Vec::<UInt8<ConstraintF<C>>>::new();

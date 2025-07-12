@@ -53,6 +53,7 @@ impl Transaction {
                     .account_merkle_tree
                     .generate_proof(self.sender.0 as usize)
                     .expect("path should exist");
+
                 path.verify(
                     &parameters.leaf_crh_params,
                     &parameters.two_to_one_crh_params,

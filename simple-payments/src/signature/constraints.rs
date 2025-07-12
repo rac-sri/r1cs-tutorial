@@ -2,7 +2,6 @@ use crate::signature::SignatureScheme;
 use ark_ff::Field;
 use ark_r1cs_std::prelude::*;
 use ark_relations::r1cs::SynthesisError;
-use tracing_subscriber::layer::SubscriberExt;
 
 pub trait SigVerifyGadget<S: SignatureScheme, ConstraintF: Field> {
     type ParametersVar: AllocVar<S::Parameters, ConstraintF> + Clone;
