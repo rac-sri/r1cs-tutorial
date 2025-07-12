@@ -56,14 +56,9 @@ impl ConstraintSynthesizer<ConstraintF> for MerkleTreeVerification {
         // Hint: look at https://github.com/arkworks-rs/crypto-primitives/blob/6be606259eab0aec010015e2cfd45e4f134cd9bf/src/merkle_tree/constraints.rs#L135
 
         // TODO: FILL IN THE BLANK!
-        let is_member = path.verify_membership(
-            &leaf_crh_params,
-            &two_to_one_crh_params,
-            &root,
-            &leaf_bytes.as_slice(),
-        )?;
-
-        is_member.enforce_equal(&Boolean::TRUE)?;
+        // let is_member = XYZ
+        //
+        // is_member.enforce_equal(&Boolean::TRUE)?;
 
         Ok(())
     }
