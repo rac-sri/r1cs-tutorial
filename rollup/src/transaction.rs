@@ -111,7 +111,9 @@ impl TransactionVar {
         //     & recipient_exists
         //     & recipient_updated_correctly
         //     & sig_verifies
+        // Ok(val)
 
+        // TODO: Comment the following
         Err(SynthesisError::Unsatisfiable)
     }
 }
