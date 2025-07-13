@@ -203,7 +203,6 @@ impl<const NUM_TX: usize> ConstraintSynthesizer<ConstraintF> for Rollup<NUM_TX> 
                 AccPathVar::new_witness(ark_relations::ns!(cs, "Sender Post-Path"), || {
                     sender_post_path.ok_or(SynthesisError::AssignmentMissing)
                 })?;
-
             // Declare the recipient's initial account balance...
             let recipient_acc_info = AccountInformationVar::new_witness(
                 ark_relations::ns!(cs, "Recipient Account Info"),
@@ -221,7 +220,6 @@ impl<const NUM_TX: usize> ConstraintSynthesizer<ConstraintF> for Rollup<NUM_TX> 
                 AccPathVar::new_witness(ark_relations::ns!(cs, "Recipient Post-Path"), || {
                     recipient_post_path.ok_or(SynthesisError::AssignmentMissing)
                 })?;
-
             // Declare the state root before the transaction...
             let pre_tx_root =
                 AccRootVar::new_witness(ark_relations::ns!(cs, "Pre-tx Root"), || {

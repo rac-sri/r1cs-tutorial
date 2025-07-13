@@ -56,10 +56,10 @@ mod test {
         let sig = S::sign(&parameters, &sk, &message, rng).unwrap();
         assert!(S::verify(&parameters, &pk, &message, &sig).unwrap());
 
-        // let mut layer = ConstraintLayer::default();
-        // layer.mode = TracingMode::All;
-        // let subscriber = tracing_subscriber::Registry::default().with(layer);
-        // let _guard = tracing::subscriber::set_default(subscriber);
+        let mut layer = ConstraintLayer::default();
+        layer.mode = TracingMode::All;
+        let subscriber = tracing_subscriber::Registry::default().with(layer);
+        let _guard = tracing::subscriber::set_default(subscriber);
 
         let cs = ConstraintSystem::<F>::new_ref();
 
